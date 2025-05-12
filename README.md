@@ -1,0 +1,1 @@
+This is an AI Chatbot I am creating for discord I realize that these large language models have a lot of bugs and I want to test it with the community on discord to see what other bugs there are to discover this ideas not to be used by others it is to be used by the my community tea with Alex
