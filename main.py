@@ -25,7 +25,7 @@ logging.info(f"Bot is running as {bot.user}")
 client = openai.OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/"
-
+)
 
 
 
