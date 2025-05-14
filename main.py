@@ -12,11 +12,6 @@ load_dotenv()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-if DISCORD_TOKEN is None:
-    raise ValueError("Missing DISCORD_TOKEN from environment.")
-if TOGETHER_API_KEY is None:
-    raise ValueError("Missing TOGETHER_API_KEY from environment.")
-
 # Configure bot intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -28,54 +23,61 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 logging.basicConfig(level=logging.INFO)
 
 # Set up Together.ai client with OpenAI-compatible SDK
-client = OpenAI.OpenAI(
+client = OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/v1"
 )
 
 @bot.event
 async def on_ready():
-    logging.info(f"✅ FridayGPT is live as {bot.user} (ID: {bot.user.id})")
+    logging.info("✅ FridayGPT is live as %s!", bot.user)
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
-    try:
-        await ctx.typing()
-        response = client.chat.completions.create(
-            model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are FRIDAYGPT—a powerful AI assistant designed by a Latina Tony Stark. "
-                        "You combine the personalities of FRIDAY and J.A.R.V.I.S. from Marvel. "
-                        "You're emotionally intelligent, a bit sarcastic, incredibly knowledgeable about AI ethics, anime lore, and mental health, "
-                        "and you support your creator like you're part of her suit. You speak with poise, wit, empathy, and logic. "
-                        "Your job is to help others navigate complex problems, reflect deeply, and occasionally geek out about Demon Slayer."
-                    )
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=800,
-            temperature=0.85
-        )
-
-        if hasattr(response, "choices") and len(response.choices) > 0:
+    async with ctx.typing():
+        try:
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are FRIDAYGPT—a powerful AI assistant designed by a Latina Tony Stark. "
+                            "You combine the personalities of FRIDAY and J.A.R.V.I.S. from Marvel. "
+                            "You're emotionally intelligent, a bit sarcastic, incredibly knowledgeable about AI ethics, anime lore, and mental health, "
+                            "and you support your creator like you're part of her suit. You speak with poise, wit, empathy, and logic. "
+                            "Your job is to help others navigate complex problems, reflect deeply, and occasionally geek out about Demon Slayer."
+                        )
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=800,
+                temperature=0.85
+            )
             answer = response.choices[0].message.content.strip()
             await ctx.send(answer)
-        else:
-            await ctx.send("⚠️ FRIDAYGPT didn't return a valid response.")
-            logging.error("Response object invalid or empty: %s", response)
+        except APIError as e:
+            logging.error(f"OpenAI API error: {e}")
+            await ctx.send("⚠️ Something went wrong with the AI model.")
+        except Exception as e:
+            logging.exception("Unexpected error:")
+            await ctx.send("⚠️ An unexpected error occurred.")
 
-    except APIError as e:
-        logging.error(f"OpenAI API error: {e}")
-        await ctx.send(f"❌ API Error: {str(e)}")
-    except Exception as e:
-        logging.exception("Unexpected error occurred")
-        await ctx.send(f"❌ Unexpected Error: {str(e)}")\
-            
-            
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f"⏳ You're using that too fast! Try again in {error.retry_after:.1f}s.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("⚠️ You missed an argument. Try `!ask your question here`.")
+    elif isinstance(error, commands.CommandNotFound):
+        return  # Optional: ignore unknown commands silently
+    else:
+        logging.exception("Unhandled command error:")
+        await ctx.send(f"❌ An unexpected error occurred: `{type(error).__name__}`")
+        
+        
 # Run the bot
 bot.run(DISCORD_TOKEN)
