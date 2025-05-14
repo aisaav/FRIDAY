@@ -12,6 +12,11 @@ load_dotenv()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
+if DISCORD_TOKEN is None:
+    raise ValueError("Missing DISCORD_TOKEN from environment.")
+if TOGETHER_API_KEY is None:
+    raise ValueError("Missing TOGETHER_API_KEY from environment.")
+
 # Configure bot intents
 intents = discord.Intents.default()
 intents.message_content = True
