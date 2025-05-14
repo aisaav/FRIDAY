@@ -33,7 +33,7 @@ async def on_ready():
     logging.info("✅ FridayGPT is live as %s!", bot.user)
 
 @bot.command(name="ask")
-@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.cooldown(1, 5, commands.BucketType)
 async def ask(ctx, *, prompt: str):
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
     async with ctx.typing():
