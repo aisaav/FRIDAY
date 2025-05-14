@@ -38,4 +38,4 @@ async def on_ready():
 
 
 @bot.command(name="ask")
-@commands.cooldown(1, 5, commands.BucketType
+@commands.cooldown(1, 5, commands.BucketType)
