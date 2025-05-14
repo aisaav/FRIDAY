@@ -15,6 +15,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 # Configure bot intents
 intents = discord.Intents.default()
 intents.message_content = True
+intents.guilds = True  # Important for full presence recognition
 
 # Initialize bot
 bot = commands.Bot(command_prefix="!!", intents=intents)
