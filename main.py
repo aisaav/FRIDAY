@@ -49,10 +49,12 @@ async def ask(ctx, *, prompt: str):
             )
             answer = response.choices[0].message.content.strip()
 
-            # ✂️ Split the response into chunks under 2000 chars
-            chunks = [answer[i:i+1999] for i in range(0, len(answer), 1999)]
+            # ✂️ Discord has a 2000 character limit per message
+            max_chunk_size = 1999
+            chunks = [answer[i:i + max_chunk_size] for i in range(0, len(answer), max_chunk_size)]
             for chunk in chunks:
                 await ctx.send(chunk)
+                await asyncio.sleep(1) 
         except APIError as e:
             logging.error(f"OpenAI API error: {e}")
             await ctx.send("⚠️ Something went wrong with the AI model.")
