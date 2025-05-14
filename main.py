@@ -36,6 +36,5 @@ async def on_ready():
     """Event triggered when the bot is ready."""
     logging.info("FridayGPT (JARVIS-mode) is online as %s!", bot.user)
 
-
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType)
