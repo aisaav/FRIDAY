@@ -18,14 +18,15 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+logging.basicConfig(level=logging.INFO)
+logging.info(f"Bot is running as {bot.user}")
+
 # Set up Together.ai client with OpenAI-compatible SDK
 client = openai.OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/"
 
 
-logging.basicConfig(level=logging.INFO)
-logging.info(f"Bot is running as {bot.user}")
 
 
 @bot.event
