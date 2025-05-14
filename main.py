@@ -30,7 +30,7 @@ client = OpenAI.OpenAI(
 
 @bot.event
 async def on_ready():
-    logging.info("FridayGPT (JARVIS-mode) is online as %s!", bot.user)
+    logging.info(f"✅ FridayGPT is live as {bot.user} (ID: {bot.user.id})")
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
