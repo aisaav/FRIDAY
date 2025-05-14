@@ -1,11 +1,12 @@
-import discord
-from discord.ext import commands
 import os
-from dotenv import load_dotenv
-import openai
 import logging
 import time
 import asyncio
+import discord
+
+from discord.ext import commands
+from dotenv import load_dotenv
+import openai
 import openai.error
 
 load_dotenv()
