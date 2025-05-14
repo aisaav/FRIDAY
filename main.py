@@ -25,6 +25,7 @@ async def on_ready():
     print(f"FridayGPT (JARVIS-mode) is online as {bot.user}!")
 
 @bot.command(name="ask")
+@commands.cooldown(1, 5, commands.BucketType.user)  # 1 use every 5 seconds per user
 async def ask(ctx, *, prompt: str):
     async with ctx.channel.typing():
         try:
