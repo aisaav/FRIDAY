@@ -3,6 +3,10 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import openai
+import logging
+import time
+import asyncio
+import openai.error
 
 load_dotenv()
 
@@ -17,16 +21,16 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Set up Together.ai client with OpenAI-compatible SDK
 client = openai.OpenAI(
     api_key=TOGETHER_API_KEY,
-    base_url="https://api.together.xyz/v1"
-)
+    base_url="https://api.together.xyz/import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logging.info(f"Bot is running as {bot.user}")
+
 
 @bot.event
 async def on_ready():
     print(f"FridayGPT (JARVIS-mode) is online as {bot.user}!")
-
-import time
-import asyncio
-import openai.error
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)  # 1 request per user every 5 seconds
@@ -72,4 +76,5 @@ async def ask(ctx, *, prompt: str):
                 break
                 
                 
+
 bot.run(DISCORD_TOKEN)
