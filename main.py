@@ -27,13 +27,8 @@ client = OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/v1"
 )
-
-@bot.event
-async def on_ready():
-    logging.info("✅ FridayGPT is live as %s!", bot.user)
-
 @bot.command(name="ask")
-@commands.cooldown(1, 5, commands.BucketType)
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
     async with ctx.typing():
@@ -44,11 +39,7 @@ async def ask(ctx, *, prompt: str):
                     {
                         "role": "system",
                         "content": (
-                            "You are FRIDAYGPT—a powerful AI assistant designed by a Latina Tony Stark. "
-                            "You combine the personalities of FRIDAY and J.A.R.V.I.S. from Marvel. "
-                            "You're emotionally intelligent, a bit sarcastic, incredibly knowledgeable about AI ethics, anime lore, and mental health, "
-                            "and you support your creator like you're part of her suit. You speak with poise, wit, empathy, and logic. "
-                            "Your job is to help others navigate complex problems, reflect deeply, and occasionally geek out about Demon Slayer."
+                            "You are FRIDAYGPT—a powerful AI assistant designed by a Latina Tony Stark..."
                         )
                     },
                     {"role": "user", "content": prompt}
@@ -57,13 +48,18 @@ async def ask(ctx, *, prompt: str):
                 temperature=0.85
             )
             answer = response.choices[0].message.content.strip()
-            await ctx.send(answer)
+
+            # ✂️ Split the response into chunks under 2000 chars
+            chunks = [answer[i:i+1999] for i in range(0, len(answer), 1999)]
+            for chunk in chunks:
+                await ctx.send(chunk)
         except APIError as e:
             logging.error(f"OpenAI API error: {e}")
             await ctx.send("⚠️ Something went wrong with the AI model.")
         except Exception as e:
             logging.exception("Unexpected error:")
             await ctx.send("⚠️ An unexpected error occurred.")
+       
 
 
 @bot.event
