@@ -78,6 +78,9 @@ async def on_command_error(ctx, error):
         logging.exception("Unhandled command error:")
         await ctx.send(f"❌ An unexpected error occurred: `{type(error).__name__}`")
         
-        
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send("🏓 Pong! FRIDAY is alive.")
+           
 # Run the bot
 bot.run(DISCORD_TOKEN)
