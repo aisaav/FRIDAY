@@ -3,8 +3,7 @@ import logging
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-import openai
-import openai.error
+from openai import OpenAI, APIError
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +23,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 logging.basicConfig(level=logging.INFO)
 
 # Set up Together.ai client with OpenAI-compatible SDK
-client = openai.OpenAI(
+client = OpenAI.OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/v1"
 )
@@ -36,7 +35,7 @@ async def on_ready():
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
-    """Handles !ask commands from users."""
+    logging.info(f"Received !ask from {ctx.author}: {prompt}")
     async with ctx.typing():
         try:
             response = client.chat.completions.create(
@@ -59,8 +58,8 @@ async def ask(ctx, *, prompt: str):
             )
             answer = response.choices[0].message.content.strip()
             await ctx.send(answer)
-        except Exception as e:
-            await ctx.send(f"⚠️ Error: {str(e)}")
+        except APIError as e:
+            logging.error(f"OpenAI API error: {e}")
 
 # Run the bot
 bot.run(DISCORD_TOKEN)
