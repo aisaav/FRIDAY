@@ -17,7 +17,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Initialize bot
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!!", intents=intents)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +27,12 @@ client = OpenAI(
     api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/v1"
 )
+
+@bot.event
+async def on_ready():
+    logging.info("FridayGPT is live as %s", bot.user)
+    
+    
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
