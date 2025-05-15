@@ -1,9 +1,13 @@
+import asyncio
 import os
 import logging
+import threading
+import time
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 from openai import OpenAI, APIError
+from discord import app_commands
 
 # Load environment variables
 load_dotenv()
@@ -55,13 +59,18 @@ async def ask(ctx, *, prompt: str):
                 temperature=0.85
             )
             answer = response.choices[0].message.content.strip()
-
+            if not answer:
+                logging.warning("🕳️ Empty response received from Together API.")
+                await ctx.send("⚠️ Sorry, I didn’t get anything back from the AI. Try again.")
+                return
             # ✂️ Discord has a 2000 character limit per message
             max_chunk_size = 1999
             chunks = [answer[i:i + max_chunk_size] for i in range(0, len(answer), max_chunk_size)]
             for chunk in chunks:
                 await ctx.send(chunk)
-                await asyncio.sleep(1) 
+                logging.info("✅ Sent a response chunk.")
+                await asyncio.sleep(1)
+            logging.info(f"✅ Responded to {ctx.author.display_name}")
         except APIError as e:
             logging.error(f"OpenAI API error: {e}")
             await ctx.send("⚠️ Something went wrong with the AI model.")
@@ -88,4 +97,11 @@ async def ping(ctx):
     await ctx.send("🏓 Pong! FRIDAY is alive.")
            
 # Run the bot
-bot.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    print("Starting bot...")
+    def heartbeat():
+        while True:
+            logging.info("🩺 Bot still alive...")
+            time.sleep(60)
+    threading.Thread(target=heartbeat, daemon=True).start()
+    bot.run(DISCORD_TOKEN)
