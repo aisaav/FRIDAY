@@ -16,7 +16,8 @@ load_dotenv()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOGETHER_API_KEY or not DISCORD_TOKEN:
-    raise EnvironmentError("Missing TOGETHER_API_KEY or DISCORD_TOKEN in environment variables.")
+    raise EnvironmentError(
+        "Missing TOGETHER_API_KEY or DISCORD_TOKEN in environment variables.")
 
 # Once here (line 21-ish)
 client = OpenAI(
@@ -52,8 +53,9 @@ async def on_ready():
     for guild in bot.guilds:
         logging.info(f"🛰️ Connected to: {guild.name} (ID: {guild.id})")
 
+
 @bot.command(name="ask")
-@commands.cooldown(1, 5, commands.BucketType.user)  # 1 request per user every 5 seconds
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
     async with ctx.typing():
@@ -73,26 +75,21 @@ async def ask(ctx, *, prompt: str):
                 temperature=0.85
             )
             answer = response.choices[0].message.content.strip()
+
             if not answer:
-                logging.warning(
-                    "🕳️ Empty response received from Together API.")
                 await ctx.send("⚠️ Sorry, I didn’t get anything back from the AI. Try again.")
                 return
-            # ✂️ Discord has a 2000 character limit per message
-            max_chunk_size = 1999
-            chunks = [answer[i:i + max_chunk_size]
-                      for i in range(0, len(answer), max_chunk_size)]
-            for chunk in chunks:
-                await ctx.send(chunk)
-                logging.info("✅ Sent a response chunk.")
-                await asyncio.sleep(1.5)  # Ensure you're under 1 request/sec
-            logging.info(f"✅ Responded to {ctx.author.display_name}")
+
+            # Chunk response for Discord's message limit
+            for i in range(0, len(answer), 1999):
+                await ctx.send(answer[i:i+1999])
+                await asyncio.sleep(1)
+
         except RateLimitError:
-            await ctx.send("🚫 Whoa there! I'm getting rate-limited. Try again in a few seconds.")
-            return
+            await ctx.send("🚫 Rate limit hit! Please wait a moment and try again.")
         except Exception as e:
             logging.exception("Unexpected error:")
-            await ctx.send("⚠️ An unexpected error occurred.")
+            await ctx.send("❌ An unexpected error occurred.")
 
 
 @bot.event
@@ -114,6 +111,7 @@ async def ping(ctx):
 
 # Run the bot
 if __name__ == "__main__":
+    logging.info("🔥 main.py loaded")
     print("Starting bot...")
 
     def heartbeat():
