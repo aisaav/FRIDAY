@@ -1,3 +1,5 @@
+import psutil
+import datetime
 import asyncio
 import os
 import logging
@@ -32,13 +34,44 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!!", intents=intents)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    filename='friday.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+
+start_time = datetime.datetime.utcnow()
+
+
+@bot.command(name="status")
+async def status(ctx):
+    current_time = datetime.datetime.utcnow()
+    uptime = str(current_time - start_time).split('.')[0]
+
+    # Memory usage
+    process = psutil.Process(os.getpid())
+    mem = process.memory_info().rss / 1024 / 1024  # MB
+
+    embed = discord.Embed(
+        title="🛰️ FRIDAYGPT Status",
+        color=discord.Color.purple()
+    )
+    embed.add_field(name="🕒 Uptime", value=uptime, inline=True)
+    embed.add_field(name="📡 Connected Servers",
+                    value=len(bot.guilds), inline=True)
+    embed.add_field(name="💾 Memory Usage", value=f"{mem:.2f} MB", inline=True)
+    embed.set_footer(text="AI with ADHD. Powered by LLaMA on Together.ai")
+
+    await ctx.send(embed=embed)
+
 
 @bot.event
 async def on_ready():
     logging.info("FridayGPT is live as %s", bot.user)
     for guild in bot.guilds:
         logging.info(f"Ὧ0️ Connected to: {guild.name} (ID: {guild.id})")
+
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
@@ -54,7 +87,7 @@ async def ask(ctx, *, prompt: str = None):
             response = client.chat.completions.create(
                 model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 messages=[
-                    {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with ADHD and a passion for AI ethics."},
+                    {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with a passion for AI ethics. You act like Jarvis from iron man"},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=800,
@@ -84,6 +117,7 @@ async def ask(ctx, *, prompt: str = None):
             logging.exception("🚨 Unexpected error in ask():")
             await ctx.send(f"❌ An unexpected error occurred inside the command.")
 
+
 @bot.event
 async def on_command_error(ctx, error):
     logging.error(f"❌ Command error: {type(error).__name__} - {error}")
@@ -103,6 +137,7 @@ async def on_command_error(ctx, error):
     else:
         logging.exception("⚠️ General command error:")
         await ctx.send(f"❌ Unexpected error: `{type(error).__name__}`")
+
 
 @bot.command(name="ping")
 async def ping(ctx):
