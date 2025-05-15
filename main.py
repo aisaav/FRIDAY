@@ -57,6 +57,7 @@ async def on_ready():
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str):
+    logging.info("🤖 Sending request to Together.ai...")
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
     async with ctx.typing():
         try:
@@ -74,6 +75,7 @@ async def ask(ctx, *, prompt: str):
                 max_tokens=800,
                 temperature=0.85
             )
+            logging.info("📩 Received response.")
             answer = response.choices[0].message.content.strip()
 
             if not answer:
@@ -88,8 +90,9 @@ async def ask(ctx, *, prompt: str):
         except RateLimitError:
             await ctx.send("🚫 Rate limit hit! Please wait a moment and try again.")
         except Exception as e:
-            logging.exception("Unexpected error:")
-            await ctx.send("❌ An unexpected error occurred.")
+            logging.exception("🚨 Error during AI response generation:")
+            await ctx.send(f"❌ An unexpected error occurred inside the command: `{type(e).__name__}`")
+            return
 
 
 @bot.event
