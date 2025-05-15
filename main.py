@@ -83,7 +83,7 @@ async def ask(ctx, *, prompt: str):
             # Chunk response for Discord's message limit
             for i in range(0, len(answer), 1999):
                 await ctx.send(answer[i:i+1999])
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
 
         except RateLimitError:
             await ctx.send("🚫 Rate limit hit! Please wait a moment and try again.")
@@ -94,20 +94,37 @@ async def ask(ctx, *, prompt: str):
 
 @bot.event
 async def on_command_error(ctx, error):
+    logging.error(
+        f"❌ Command error: {error.__class__.__name__} - {str(error)}")
+
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f"⏳ You're using that too fast! Try again in {error.retry_after:.1f}s.")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("⚠️ You missed an argument. Try `!ask your question here`.")
+        await ctx.send("⚠️ You missed an argument. Try `!!ask your question here`.")
     elif isinstance(error, commands.CommandNotFound):
-        return  # Optional: ignore unknown commands silently
+        return  # Silently ignore unknown commands
+    elif isinstance(error, commands.CommandInvokeError):
+        # NEW: log inner error for visibility
+        inner_error = error.original
+        logging.exception("🚨 Inner error:")
+        await ctx.send(f"❌ An unexpected error occurred inside the command: `{type(inner_error).__name__}`")
     else:
-        logging.exception("Unhandled command error:")
-        await ctx.send(f"❌ An unexpected error occurred: `{type(error).__name__}`")
+        logging.exception("⚠️ Unhandled command error:")
+        await ctx.send(f"❌ Unexpected error: `{type(error).__name__}`")
 
 
 @bot.command(name="ping")
 async def ping(ctx):
+    if ctx.guild is None:
+        return  # skip DMs if needed
     await ctx.send("🏓 Pong! FRIDAY is alive.")
+
+
+@bot.event
+async def on_message(message):
+    logging.info(f"📥 Received: {message.author}: {message.content}")
+    await bot.process_commands(message)  # Don’t forget this or commands break
+
 
 # Run the bot
 if __name__ == "__main__":
