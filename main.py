@@ -120,5 +120,6 @@ if __name__ == "__main__":
         while True:
             logging.info("🩺 Bot still alive...")
             time.sleep(60)
+
     threading.Thread(target=heartbeat, daemon=True).start()
     bot.run(DISCORD_TOKEN)
