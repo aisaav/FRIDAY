@@ -3,56 +3,42 @@ import os
 import logging
 import threading
 import time
+import traceback
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from openai import OpenAI, APIError, RateLimitError
-from discord import app_commands
+from openai import OpenAI, RateLimitError
 
-# Load .env variables
+# Load environment variables
 load_dotenv()
 
-# Retrieve API keys from environment variables
+# API Keys
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-if not TOGETHER_API_KEY or not DISCORD_TOKEN:
-    raise EnvironmentError(
-        "Missing TOGETHER_API_KEY or DISCORD_TOKEN in environment variables.")
 
-# Once here (line 21-ish)
+if not TOGETHER_API_KEY or not DISCORD_TOKEN:
+    raise EnvironmentError("Missing TOGETHER_API_KEY or DISCORD_TOKEN in .env")
+
+# Initialize Together client
 client = OpenAI(
-    api_key=os.getenv("TOGETHER_API_KEY"),
+    api_key=TOGETHER_API_KEY,
     base_url="https://api.together.xyz/v1"
 )
 
-# Configure bot intents
+# Configure bot
 intents = discord.Intents.default()
 intents.message_content = True
-intents.guilds = True  # Important for full presence recognition
+intents.guilds = True
 
-# Initialize bot
 bot = commands.Bot(command_prefix="!!", intents=intents)
-# And then again here (line 34-ish)
-client = OpenAI(
-    api_key=TOGETHER_API_KEY,
-    base_url="https://api.together.xyz/v1"
-)
-# Configure logging
+
 logging.basicConfig(level=logging.INFO)
-
-# Initialize the OpenAI-compatible client for Together.ai
-client = OpenAI(
-    api_key=TOGETHER_API_KEY,
-    base_url="https://api.together.xyz/v1"
-)
-
 
 @bot.event
 async def on_ready():
     logging.info("FridayGPT is live as %s", bot.user)
     for guild in bot.guilds:
-        logging.info(f"🛰️ Connected to: {guild.name} (ID: {guild.id})")
-
+        logging.info(f"Ὧ0️ Connected to: {guild.name} (ID: {guild.id})")
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
@@ -68,12 +54,7 @@ async def ask(ctx, *, prompt: str = None):
             response = client.chat.completions.create(
                 model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with ADHD and a passion for AI ethics."
-                        )
-                    },
+                    {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with ADHD and a passion for AI ethics."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=800,
@@ -83,69 +64,52 @@ async def ask(ctx, *, prompt: str = None):
             answer = response.choices[0].message.content.strip()
 
             if not answer:
-                await ctx.send("⚠️ I didn't get a useful response back from Together.ai.")
+                await ctx.send("⚠️ No response received from the model. Please try again.")
                 return
 
-            logging.info("📤 Sending prompt to Together.ai...")
-            response = client.chat.completions.create(...)
-            logging.info("✅ Received response")
-
-            answer = response.choices[0].message.content.strip()
-            logging.info(f"🧠 Answer processed: {answer[:60]}...")
-
-            # Chunking & sending response
             for i in range(0, len(answer), 1999):
-                logging.info(f"📤 Sending chunk: {i}")
                 await ctx.send(answer[i:i+1999])
                 await asyncio.sleep(1)
 
         except RateLimitError:
-            await ctx.send("🚫 I'm being rate-limited. Please try again in a moment.")
-        except NameError as e:
-            logging.error(f"⚠️ NameError: {e}")
-            await ctx.send("❌ A variable I tried to use wasn't defined. Bug noted!")
-        except Exception as e:
-            logging.exception("🚨 Unhandled exception:")
-            await ctx.send("❌ An unexpected error occurred inside the command.")
+            logging.warning("⚠️ Rate limit hit")
+            await ctx.send("🚫 I'm being rate-limited. Please wait a few seconds and try again.")
 
+        except NameError as e:
+            logging.error(f"❌ NameError: {e}")
+            traceback.print_exc()
+            await ctx.send("❌ A variable was missing. This bug has been noted.")
+
+        except Exception as e:
+            logging.exception("🚨 Unexpected error in ask():")
+            await ctx.send(f"❌ An unexpected error occurred inside the command.")
 
 @bot.event
 async def on_command_error(ctx, error):
-    logging.error(
-        f"❌ Command error: {error.__class__.__name__} - {str(error)}")
+    logging.error(f"❌ Command error: {type(error).__name__} - {error}")
 
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f"⏳ You're using that too fast! Try again in {error.retry_after:.1f}s.")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("⚠️ You missed an argument. Try `!!ask your question here`.")
+        await ctx.send("⚠️ Missing argument. Try `!!ask your question`.")
     elif isinstance(error, commands.CommandNotFound):
-        return  # Silently ignore unknown commands
+        return  # Silent ignore
     elif isinstance(error, commands.CommandInvokeError):
-        # NEW: log inner error for visibility
-        inner_error = error.original
-        logging.exception("🚨 Inner error:")
-        await ctx.send(f"❌ An unexpected error occurred inside the command: `{type(inner_error).__name__}`")
+        if hasattr(error, "original"):
+            logging.exception("🚨 Inner error:")
+            await ctx.send(f"❌ An unexpected error occurred inside the command: `{type(error.original).__name__}`")
+        else:
+            await ctx.send(f"❌ Command failed with: `{type(error).__name__}`")
     else:
-        logging.exception("⚠️ Unhandled command error:")
+        logging.exception("⚠️ General command error:")
         await ctx.send(f"❌ Unexpected error: `{type(error).__name__}`")
-
 
 @bot.command(name="ping")
 async def ping(ctx):
-    if ctx.guild is None:
-        return  # skip DMs if needed
     await ctx.send("🏓 Pong! FRIDAY is alive.")
-
-
-@bot.event
-async def on_message(message):
-    logging.info(f"📥 Received: {message.author}: {message.content}")
-    await bot.process_commands(message)  # Don’t forget this or commands break
-
 
 # Run the bot
 if __name__ == "__main__":
-    logging.info("🔥 main.py loaded")
     print("Starting bot...")
 
     def heartbeat():
