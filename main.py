@@ -6,7 +6,7 @@ import time
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from openai import OpenAI, APIError
+from openai import OpenAI, APIError, RateLimitError
 from discord import app_commands
 
 # Load .env variables
@@ -56,9 +56,13 @@ async def on_ready():
 
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
-async def ask(ctx, *, prompt: str):
-    logging.info("🤖 Sending request to Together.ai...")
+async def ask(ctx, *, prompt: str = None):
+    if not prompt:
+        await ctx.send("⚠️ You need to provide a prompt! Try `!!ask your question here`.")
+        return
+
     logging.info(f"Received !ask from {ctx.author}: {prompt}")
+
     async with ctx.typing():
         try:
             response = client.chat.completions.create(
@@ -67,7 +71,7 @@ async def ask(ctx, *, prompt: str):
                     {
                         "role": "system",
                         "content": (
-                            "You are FRIDAYGPT—a powerful AI assistant designed by a Latina Tony Stark with adhd and a passion for ai ethics"
+                            "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with ADHD and a passion for AI ethics."
                         )
                     },
                     {"role": "user", "content": prompt}
@@ -75,24 +79,34 @@ async def ask(ctx, *, prompt: str):
                 max_tokens=800,
                 temperature=0.85
             )
-            logging.info("📩 Received response.")
+
             answer = response.choices[0].message.content.strip()
 
             if not answer:
-                await ctx.send("⚠️ Sorry, I didn’t get anything back from the AI. Try again.")
+                await ctx.send("⚠️ I didn't get a useful response back from Together.ai.")
                 return
 
-            # Chunk response for Discord's message limit
+            logging.info("📤 Sending prompt to Together.ai...")
+            response = client.chat.completions.create(...)
+            logging.info("✅ Received response")
+
+            answer = response.choices[0].message.content.strip()
+            logging.info(f"🧠 Answer processed: {answer[:60]}...")
+
+            # Chunking & sending response
             for i in range(0, len(answer), 1999):
+                logging.info(f"📤 Sending chunk: {i}")
                 await ctx.send(answer[i:i+1999])
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
 
         except RateLimitError:
-            await ctx.send("🚫 Rate limit hit! Please wait a moment and try again.")
+            await ctx.send("🚫 I'm being rate-limited. Please try again in a moment.")
+        except NameError as e:
+            logging.error(f"⚠️ NameError: {e}")
+            await ctx.send("❌ A variable I tried to use wasn't defined. Bug noted!")
         except Exception as e:
-            logging.exception("🚨 Error during AI response generation:")
-            await ctx.send(f"❌ An unexpected error occurred inside the command: `{type(e).__name__}`")
-            return
+            logging.exception("🚨 Unhandled exception:")
+            await ctx.send("❌ An unexpected error occurred inside the command.")
 
 
 @bot.event
