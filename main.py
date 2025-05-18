@@ -6,6 +6,7 @@ import logging
 import threading
 import time
 import traceback
+from collections import defaultdict, deque
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
@@ -31,6 +32,7 @@ client = OpenAI(
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
+user_memory = defaultdict(lambda: deque(maxlen=5))  # Stores last 5 prompts per user
 
 bot = commands.Bot(command_prefix="!!", intents=intents)
 
@@ -76,6 +78,8 @@ async def on_ready():
 @bot.command(name="ask")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def ask(ctx, *, prompt: str = None):
+    user_id = str(ctx.author.id)
+    user_memory[user_id].append(prompt)
     if not prompt:
         await ctx.send("⚠️ You need to provide a prompt! Try `!!ask your question here`.")
         return
@@ -84,18 +88,20 @@ async def ask(ctx, *, prompt: str = None):
 
     async with ctx.typing():
         try:
-            response = client.chat.completions.create(
-                model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                messages=[
+            history = [{"role": "user", "content": msg} for msg in user_memory[user_id]]
+            mess=[
                     {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with a passion for AI ethics. You act like Jarvis from iron man, do not assume genders, do not say Señor or Señora"},
                     {"role": "user", "content": prompt}
-                ],
+                ] + history
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                messages=mess,
                 max_tokens=800,
                 temperature=0.85
             )
 
             answer = response.choices[0].message.content.strip()
-
+            
             if not answer:
                 await ctx.send("⚠️ No response received from the model. Please try again.")
                 return
