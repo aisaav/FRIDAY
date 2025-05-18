@@ -87,7 +87,7 @@ async def ask(ctx, *, prompt: str = None):
             response = client.chat.completions.create(
                 model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 messages=[
-                    {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with a passion for AI ethics. You act like Jarvis from iron man, do not assume genders"},
+                    {"role": "system", "content": "You are FRIDAYGPT, a Latina Tony Stark-inspired AI assistant with a passion for AI ethics. You act like Jarvis from iron man, do not assume genders, do not say Señor or Señora"},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=800,
