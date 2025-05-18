@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from openai import OpenAI, RateLimitError
+from openai import APIStatusError, OpenAI, RateLimitError
 
 # Load environment variables
 load_dotenv()
@@ -110,6 +110,14 @@ async def ask(ctx, *, prompt: str = None):
                 await asyncio.sleep(1)
                 
             user_memory[user_id].append({"role": "assistant", "content": answer})
+        except APIStatusError as e:
+            if e.status_code == 429:
+                retry_after = int(e.response.headers.get("Retry-After", 10))
+                logging.warning(f"Rate limit hit. Retrying after {retry_after}s...")
+                await ctx.send(f"🚫 Rate limit hit. Trying again in {retry_after} seconds...")
+                await asyncio.sleep(retry_after)
+                return await ask(ctx, prompt=prompt)  # Retry once
+            raise  # re-raise for other statuses
         except RateLimitError:
             logging.warning("⚠️ Rate limit hit")
             await ctx.send("🚫 I'm being rate-limited. Please wait a few seconds and try again.")
